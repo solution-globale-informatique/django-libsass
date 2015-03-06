@@ -1,6 +1,10 @@
 Changelog
 =========
 
+XXX
+~~~~~~~~~~~~~~~~
+ * Experimental source map output, with patch to django compressor.
+
 0.3 (xx.xx.20xx)
 ~~~~~~~~~~~~~~~~
  * Enabled source comments when DEBUG is True; can be overridden with the LIBSASS_SOURCE_COMMENTS setting

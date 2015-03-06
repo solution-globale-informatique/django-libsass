@@ -1,3 +1,6 @@
+# noinspection PyUnresolvedReferences
+import compressor_patch
+
 from django.conf import settings
 from django.contrib.staticfiles.finders import get_finders
 
@@ -6,7 +9,7 @@ from compressor.filters.base import FilterBase
 
 OUTPUT_STYLE = getattr(settings, 'LIBSASS_OUTPUT_STYLE', 'nested')
 SOURCE_COMMENTS = getattr(settings, 'LIBSASS_SOURCE_COMMENTS', settings.DEBUG)
-
+SOURCE_MAPS = getattr(settings, 'LIBSASS_SOURCE_MAPS', SOURCE_COMMENTS)
 
 def get_include_paths():
     """
@@ -53,10 +56,19 @@ class SassCompiler(FilterBase):
 
     def input(self, **kwargs):
         if self.filename:
-            return compile(filename=self.filename,
-                           output_style=OUTPUT_STYLE,
-                           source_comments=SOURCE_COMMENTS)
+            kw = {
+                'filename': self.filename,
+                'output_style': OUTPUT_STYLE,
+                'source_comments': SOURCE_COMMENTS,
+            }
+            if SOURCE_COMMENTS and SOURCE_MAPS:
+                kw['source_map_filename'] = self.filename + '.map'
+
+            self.css, self.source_map = compile(**kw)
+            return self.css, self.source_map
+
         else:
             return compile(string=self.content,
                            output_style=OUTPUT_STYLE)
+
 
