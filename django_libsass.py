@@ -64,8 +64,12 @@ class SassCompiler(FilterBase):
             if SOURCE_COMMENTS and SOURCE_MAPS:
                 kw['source_map_filename'] = self.filename + '.map'
 
-            self.css, self.source_map = compile(**kw)
-            return self.css, self.source_map
+            if SOURCE_MAPS:
+                self.css, self.source_map = compile(**kw)
+                return self.css, self.source_map
+            else:
+                self.css = compile(**kw)
+                return self.css
 
         else:
             return compile(string=self.content,
