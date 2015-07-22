@@ -6,6 +6,7 @@ from django.contrib.staticfiles.finders import get_finders
 
 import sass
 from compressor.filters.base import FilterBase
+from compressor.filters.css_default import CssAbsoluteFilter
 
 OUTPUT_STYLE = getattr(settings, 'LIBSASS_OUTPUT_STYLE', 'nested')
 
@@ -60,29 +61,33 @@ def compile(**kwargs):
     kwargs['include_paths'] = (kwargs.get('include_paths') or []) + INCLUDE_PATHS
     return sass.compile(**kwargs)
 
-
 class SassCompiler(FilterBase):
     def __init__(self, content, attrs=None, filter_type=None, charset=None, filename=None):
         # FilterBase doesn't handle being passed attrs, so fiddle the signature
         super(SassCompiler, self).__init__(content, filter_type, filename)
 
     def input(self, **kwargs):
+        kwargs.setdefault('filename', self.filename)
+        kw = {'output_style': OUTPUT_STYLE}
+        
         if self.filename:
-            kw = {
-                'filename': self.filename,
-                'output_style': OUTPUT_STYLE,
-                'source_comments': SOURCE_COMMENTS,
-            }
+            kw['filename'] = self.filename
+            kw['source_comments'] = SOURCE_COMMENTS
+            
             if SOURCE_MAPS:
                 kw['source_map_filename'] = self.filename + '.map'
-                self.css, self.source_map = compile(**kw)
-                return self.css, self.source_map
-            else:
-                self.css = compile(**kw)
-                return self.css
-
         else:
-            return compile(string=self.content,
-                           output_style=OUTPUT_STYLE)
-
+            kw['string'] = self.content
+    
+        if self.filename and SOURCE_MAPS:
+            self.css, self.source_map = compile(**kw)
+        else:
+            self.css = compile(**kw)
+        
+        self.css = CssAbsoluteFilter(self.css).input(**kwargs)
+        
+        if self.filename and SOURCE_MAPS:
+            return self.css, self.source_map
+        else:
+            return self.css
 
