@@ -1,3 +1,6 @@
+# noinspection PyUnresolvedReferences
+import compressor_patch
+
 from django.conf import settings
 from django.contrib.staticfiles.finders import get_finders
 
@@ -5,8 +8,20 @@ import sass
 from compressor.filters.base import FilterBase
 
 OUTPUT_STYLE = getattr(settings, 'LIBSASS_OUTPUT_STYLE', 'nested')
-SOURCE_COMMENTS = getattr(settings, 'LIBSASS_SOURCE_COMMENTS', settings.DEBUG)
 
+# handle the differences in SOURCE_COMMENTS parameters between sass versions
+SASS_SOURCE_COMMENTS_BOOL = tuple(int(a)
+                                  for a in sass.__version__.split('.')) >= (0, 6, 0)
+
+if SASS_SOURCE_COMMENTS_BOOL:
+    SOURCE_COMMENTS = getattr(settings, 'LIBSASS_SOURCE_COMMENTS', settings.DEBUG)
+    SOURCE_MAPS = getattr(settings, 'LIBSASS_SOURCE_MAPS', settings.DEBUG)
+else:
+    if settings.DEBUG:
+        SOURCE_COMMENTS = getattr(settings, 'LIBSASS_SOURCE_COMMENTS', 'map')
+    else:
+        SOURCE_COMMENTS = getattr(settings, 'LIBSASS_SOURCE_COMMENTS', 'none')
+    SOURCE_MAPS = SOURCE_COMMENTS == 'map'
 
 def get_include_paths():
     """
@@ -53,10 +68,21 @@ class SassCompiler(FilterBase):
 
     def input(self, **kwargs):
         if self.filename:
-            return compile(filename=self.filename,
-                           output_style=OUTPUT_STYLE,
-                           source_comments=SOURCE_COMMENTS)
+            kw = {
+                'filename': self.filename,
+                'output_style': OUTPUT_STYLE,
+                'source_comments': SOURCE_COMMENTS,
+            }
+            if SOURCE_MAPS:
+                kw['source_map_filename'] = self.filename + '.map'
+                self.css, self.source_map = compile(**kw)
+                return self.css, self.source_map
+            else:
+                self.css = compile(**kw)
+                return self.css
+
         else:
             return compile(string=self.content,
                            output_style=OUTPUT_STYLE)
+
 
