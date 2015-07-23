@@ -4,6 +4,7 @@
 from django.core.files.base import ContentFile
 from django.utils.safestring import mark_safe
 import compressor.base
+import json
 
 # Save original function for later, so we can send non-libsass output to the
 # original function.
@@ -53,6 +54,20 @@ def output_file(self, mode, content, forced=False, basename=None):
             # get_filepath and then append the source map name we found in the
             # css.
             map_filepath = os.path.join(os.path.dirname(map_filepath), source_map_name)
+            
+            # Source maps are compiled assuming they are in the same folder as the
+            # css output, but that output is written in COMPRESS_OUTPUT_DIR/css
+            # instead. We need to fix source path in the source map file.
+            map_content = json.loads(map)            
+            for index, source in enumerate(map_content['sources']):
+                map_content['sources'][index] = os.path.join(
+                    os.path.relpath(os.path.dirname(basename), os.path.dirname(map_filepath)),
+                    source
+                )
+            map = json.dumps(map_content)
+            
+            print map.encode(self.charset)
+            
             self.storage.save(map_filepath, ContentFile(map.encode(self.charset)))
         else:
             # Couldn't find the map name, so do nothing special
