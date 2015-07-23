@@ -66,8 +66,6 @@ def output_file(self, mode, content, forced=False, basename=None):
                 )
             map = json.dumps(map_content)
             
-            print map.encode(self.charset)
-            
             self.storage.save(map_filepath, ContentFile(map.encode(self.charset)))
         else:
             # Couldn't find the map name, so do nothing special
