@@ -12,7 +12,7 @@ setup(
     author='Matt Westcott',
     author_email='matthew.westcott@torchbox.com',
     url='https://github.com/torchbox/django-libsass',
-    py_modules=['django_libsass'],
+    py_modules=['django_libsass','compressor_patch'],
     license='BSD',
     long_description=open('README.rst').read(),
     classifiers=[
